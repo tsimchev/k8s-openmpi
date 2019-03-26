@@ -1,0 +1,24 @@
+Protocol 2
+Port 22
+PubkeyAuthentication yes
+PasswordAuthentication no
+PidFile /etc/ssh/sshd.pid
+HostKey /etc/ssh/id_rsa
+AuthorizedKeysFile /etc/ssh/id_rsa.pub
+UsePrivilegeSeparation no
+SyslogFacility AUTH
+LogLevel INFO
+LoginGraceTime 120
+PermitRootLogin yes
+StrictModes yes
+IgnoreRhosts yes
+HostbasedAuthentication no
+PermitEmptyPasswords no
+ChallengeResponseAuthentication no
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+AcceptEnv LANG LC_*
+Subsystem sftp /usr/lib/openssh/sftp-server
+UsePAM no
+PermitUserEnvironment yes

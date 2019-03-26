@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openmpi-node
+spec:
+  selector:
+    matchLabels:
+      app: openmpi-node
+  serviceName: openmpi-node
+  replicas: 10
+  template:
+    metadata:
+      labels:
+        app: openmpi-node
+    spec: 
+      initContainers:
+      - name: init-openmpi-node
+        image: tsimchev/openmpi-cluster
+        command: ['bash', '-c', 'for n in $(seq 0 10); do echo "$(hostname | sed s/[0-9]*$//)${n}$(hostname -d)" >> /etc/cluster; done;']
+        ### Share cluster info through persisted volume
+        # volumeMounts:
+        #     - name: info
+        #       mountPath: "/etc/cluster"
+      containers:
+        - name: openmpi-node
+          image: tsimchev/openmpi-cluster
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: key
+              mountPath: "/etc/ssh/key"
+            # - name: info
+            #   mountPath: "/etc/cluster"
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 2222
+      volumes:
+        - name: key
+          secret:
+            secretName: openmpi-id-rsa
+            # 0400 == 256
+            defaultMode: 256
+      ### Enable in case pod per node is required
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #     - weight: 100
+      #       podAffinityTerm:
+      #         labelSelector:
+      #           matchLabels:
+      #             app: openmpi-node
+      #         topologyKey: kubernetes.io/hostname
+  ### TODO - Share secrets through shared volume
+  # volumeClaimTemplates:
+  # - metadata:
+  #     name: info
+  #   spec:
+  #     accessModes: [ "ReadWriteOnce" ]
+  #     storageClassName: "standard"
+  #     resources:
+  #       requests:
+  #         storage: "5Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openmpi-node
+  labels:
+    app: openmpi-node
+spec:
+  ports:
+    - port: 2222
+      targetPort: 22
+      protocol: TCP
+  # Headless
+  clusterIP: None
+  selector:
+    app: openmpi-node
